@@ -1,5 +1,14 @@
 # Github's default gitignore for Python
 
+# Environment variables and secrets
+.env
+.env.*
+*.env
+
+# Transcripts directory
+backend/transcripts/
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
