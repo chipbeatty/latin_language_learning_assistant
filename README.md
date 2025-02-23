@@ -1,40 +1,63 @@
-# language-learning-assistant
-This is for the generative AI bootcamp
+# Latin Learning Assistant
+
+An interactive tool that helps users learn Latin through YouTube video transcripts, powered by Amazon Bedrock and Claude v2.
 
 **Difficulty:** Level 200 *(Due to RAG implementation and multiple AWS services integration)*
 
 **Business Goal:**
-A progressive learning tool that demonstrates how RAG and agents can enhance language learning by grounding responses in real Japanese lesson content. The system shows the evolution from basic LLM responses to a fully contextual learning assistant, helping students understand both the technical implementation and practical benefits of RAG.
+A progressive learning tool that demonstrates how RAG and agents can enhance language learning by grounding responses in real Latin lesson content. The system shows the evolution from basic LLM responses to a fully contextual learning assistant, helping students understand both the technical implementation and practical benefits of RAG.
 
-**Technical Uncertainty:**
-1. How effectively can we process and structure bilingual (Japanese/English) content for RAG?
-2. What's the optimal way to chunk and embed Japanese language content?
-3. How can we effectively demonstrate the progression from base LLM to RAG to students?
-4. Can we maintain context accuracy when retrieving Japanese language examples?
-5. How do we balance between giving direct answers and providing learning guidance?
-6. What's the most effective way to structure multiple-choice questions from retrieved content?
+**Technical Features:**
+1. Process and structure Latin/English content for RAG
+2. Optimal chunking and embedding of Latin language content
+3. Progressive demonstration from base LLM to RAG
+4. Context-aware retrieval of Latin language examples
+5. Balance between direct answers and learning guidance
+6. Generation of multiple-choice questions from retrieved content
 
-**Technical Restrictions:**
-* Must use Amazon Bedrock for:
-   * API (converse, guardrails, embeddings, agents) (https://boto3.amazonaws.com/v1/documentation/api/latest/index.html)
-     * Aamzon Nova Micro for text generation (https://aws.amazon.com/ai/generative-ai/nova)
-   * Titan for embeddings
-* Must implement in Streamlit, pandas (data visualization)
-* Must use SQLite for vector storage
-* Must handle YouTube transcripts as knowledge source (YouTubeTranscriptApi: https://pypi.org/project/youtube-transcript-api/)
-* Must demonstrate clear progression through stages:
-   * Base LLM
-   * Raw transcript
-   * Structured data
-   * RAG implementation
-   * Interactive features
-* Must maintain clear separation between components for teaching purposes
-* Must include proper error handling for Japanese text processing
-* Must provide clear visualization of RAG process
-* Should work within free tier limits where possible
+**Technical Stack:**
+* Amazon Bedrock
+   * Claude v2 for text generation
+   * Titan for embeddings (planned)
+* Streamlit for web interface
+* ChromaDB for vector storage
+* YouTube Transcript API for content sourcing
+* Python with pandas for data visualization
 
-This structure:
-1. Sets clear expectations
-2. Highlights key technical challenges
-3. Defines specific constraints
-4. Keeps focus on both learning outcomes and technical implementation
+**Project Structure:**
+* `frontend/`: Streamlit web interface
+* `backend/`: Core functionality
+  * `chat.py`: Amazon Bedrock integration
+  * `get_transcript.py`: YouTube transcript processing
+  * `rag.py`: RAG implementation
+  * `structured_data.py`: Text analysis tools
+
+## Setup
+
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Set up your AWS credentials in a `.env` file:
+   ```env
+   AWS_ACCESS_KEY_ID=your_access_key
+   AWS_SECRET_ACCESS_KEY=your_secret_key
+   AWS_DEFAULT_REGION=us-east-1
+   ```
+4. Run the Streamlit app:
+   ```bash
+   PYTHONPATH=/path/to/project streamlit run frontend/main.py
+   ```
+
+## Development Stages
+
+1. **Base LLM**: Direct interaction with Claude v2
+2. **Raw Transcript**: YouTube transcript processing
+3. **Structured Data**: Latin text analysis
+4. **RAG Implementation**: Context-aware responses
+5. **Interactive Features**: Enhanced learning tools
+
+## Security Note
+
+Never commit the `.env` file containing your AWS credentials. It is included in `.gitignore` by default.
