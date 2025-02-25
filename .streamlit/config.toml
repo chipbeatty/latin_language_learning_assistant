@@ -1,0 +1,22 @@
+[server]
+runOnSave = true
+port = 8501
+enableCORS = false
+enableXsrfProtection = false
+maxUploadSize = 200
+watcherType = "poll"
+
+[browser]
+serverAddress = "localhost"
+gatherUsageStats = false
+
+[runner]
+fastReruns = true
+fastRerunThresholdMs = 0
+
+[client]
+toolbarMode = "minimal"
+showErrorDetails = true
+
+[logger]
+level = "error"

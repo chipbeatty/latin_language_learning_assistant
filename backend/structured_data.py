@@ -14,33 +14,27 @@ class TranscriptStructurer:
 
     def structure_transcript(self, transcript: str) -> Optional[str]:
         """Structure the transcript into questions using Amazon Bedrock"""
-        prompt = f"""This is a Latin language comprehension practice transcript. Ignore any introductory or ending instructions about the test.
-        Focus only on extracting the actual test questions. Each question typically follows this pattern:
-        1. A number (like '1.' or '2.')
-        2. A setup of the situation
-        3. A conversation between people
-        4. A question about the conversation
+        prompt = f"""This is a French language learning transcript. Create multiple choice questions from this content.
+        For each piece of dialogue or vocabulary, create a question following this format:
 
-        Extract each question and format them like this:
+        1. Question in French
+        2. Four possible answers in French (labeled A, B, C, D)
+        3. The correct answer
+        4. Topic (e.g., "Vocabulary", "Grammar", "Conversation")
 
-        <question>
-        Introduction:
-        [the situation setup in Latin]
-        
-        Conversation:
-        [the actual dialogue in Latin]
-        
-        Question:
-        [the question being asked in Latin]
-        </question>
-        ...
-
-        Do not translate the Latin text into English.
+        Format the output as a JSON array of questions where each question has this structure:
+        {{
+            "question": "[French question]",
+            "choices": ["A) [option]", "B) [option]", "C) [option]", "D) [option]"],
+            "correct_answer": "[A, B, C, or D]",
+            "topic": "[topic]"
+        }}
 
         Here's the transcript:
         {transcript}
-        """
 
+        Create at least 5 questions. Make sure all text (questions and answers) is in French.
+        """
 
         messages = [{
             "role": "user",
@@ -62,6 +56,22 @@ class TranscriptStructurer:
     def save_questions(self, structured_text: str, filename: str) -> bool:
         """Save structured questions to a file"""
         try:
+            # Validate JSON format
+            import json
+            try:
+                # Try to parse as JSON to validate format
+                json.loads(structured_text)
+            except json.JSONDecodeError:
+                # If not valid JSON, try to extract JSON part
+                import re
+                json_match = re.search(r'\[\s*{.*}\s*\]', structured_text, re.DOTALL)
+                if json_match:
+                    structured_text = json_match.group(0)
+                else:
+                    print("Could not find valid JSON in response")
+                    return False
+            
+            # Save to file
             with open(filename, 'w', encoding='utf-8') as f:
                 f.write(structured_text)
             return True
@@ -70,12 +80,12 @@ class TranscriptStructurer:
             return False
 
     def load_transcript(self, filename: str) -> Optional[str]:
-        """Load structured questions from a file"""
+        """Load transcript from a file"""
         try:
             with open(filename, 'r', encoding='utf-8') as f:
                 return f.read()
         except Exception as e:
-            print(f"Error loading questions: {str(e)}")
+            print(f"Error loading transcript: {str(e)}")
             return None
 
 if __name__ == "__main__":

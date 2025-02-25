@@ -1,0 +1,46 @@
+Here are the extracted questions from the transcript, formatted as requested:
+
+<question>
+Introduction:
+Martin se réveille tous les jours à 6 heures 30, il prend ensuite une douche et va préparer le petit déjeuner pour sa famille.
+
+Conversation:
+Martin se réveille tous les jours à 6 heures 30
+il prend ensuite une douche et va préparer le petit déjeuner pour sa famille
+
+Question:
+À quelle heure se réveille Martin et qu'est ce que Martin fait ensuite?
+</question>
+
+<question>
+Introduction:
+La femme de Martin s'appelle Corinne et ses enfants s'appellent Pierre, Arthur et Marie. La famille a également un chien qui s'appelle Phil.
+
+Conversation:
+La femme de Martin s'appelle Corinne et ses enfants s'appellent Pierre, Arthur et Marie. La famille a également un chien qui s'appelle Phil.
+
+Question:
+Comment s'appellent sa femme et ses enfants?
+</question>
+
+<question>
+Introduction:
+Au petit déjeuner, Martin et sa famille aiment manger des croissants et des tartines de confiture. Martin et Corine boivent du café et les enfants boivent du jus d'orange.
+
+Conversation:
+Au petit déjeuner, Martin et sa famille aiment manger des croissants et des tartines de confiture. Martin et Corine boivent du café et les enfants boivent du jus d'orange.
+
+Question:
+Qu'est ce qu'ils mangent au petit déjeuner et qu'est-ce que boivent Martin et Corine et leurs enfants?
+</question>
+
+<question>
+Introduction:
+Martin dépose ensuite ses enfants à l'école et commence son travail à 8h30. Corine, sa femme, est secrétaire dans une agence immobilière et commence son travail à 9h, le terminant à 18 heures.
+
+Conversation:
+Martin dépose ensuite ses enfants à l'école et commence son travail à 8h30. Corine sa femme est secrétaire dans une agence immobilière elle commence son travail à 9h et le termine à 18 heures.
+
+Question:
+Qu'est ce que Martin fait ensuite et à quelle heure Martin commence son travail? Quel est le métier de Corine et à quelle heure commence-t-elle son travail et à quelle heure finit-elle?
+</question>

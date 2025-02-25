@@ -1,44 +1,56 @@
 from youtube_transcript_api import YouTubeTranscriptApi
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Tuple
+from .utils import validate_youtube_url
 
 
 class YouTubeTranscriptDownloader:
-    def __init__(self, languages: List[str] = ["la", "en"]):
+    def __init__(self, languages: List[str] = ["fr", "en"]):
         self.languages = languages
 
-    def extract_video_id(self, url: str) -> Optional[str]:
+    def extract_video_id(self, url: str) -> Tuple[Optional[str], str]:
         """
-        Extract video ID from YouTube URL
+        Extract video ID from YouTube URL with validation
         
         Args:
             url (str): YouTube URL
             
         Returns:
-            Optional[str]: Video ID if found, None otherwise
+            Tuple[Optional[str], str]: (video_id if found, error message if any)
         """
+        # First validate the URL format
+        is_valid, message = validate_youtube_url(url)
+        if not is_valid:
+            return None, message
+            
+        # Extract ID from valid URL
         if "v=" in url:
-            return url.split("v=")[1][:11]
+            video_id = url.split("v=")[1][:11]
         elif "youtu.be/" in url:
-            return url.split("youtu.be/")[1][:11]
-        return None
+            video_id = url.split("youtu.be/")[1][:11]
+        else:
+            return None, "Could not extract video ID from URL"
+            
+        return video_id, ""
 
-    def get_transcript(self, video_id: str) -> Optional[List[Dict]]:
+    def get_transcript(self, url_or_id: str) -> Optional[List[Dict]]:
         """
         Download YouTube Transcript
         
         Args:
-            video_id (str): YouTube video ID or URL
+            url_or_id (str): YouTube video ID or URL
             
         Returns:
             Optional[List[Dict]]: Transcript if successful, None otherwise
         """
         # Extract video ID if full URL is provided
-        if "youtube.com" in video_id or "youtu.be" in video_id:
-            video_id = self.extract_video_id(video_id)
-            
-        if not video_id:
-            print("Invalid video ID or URL")
-            return None
+        if "youtube.com" in url_or_id or "youtu.be" in url_or_id:
+            video_id, error = self.extract_video_id(url_or_id)
+            if not video_id:
+                print(f"Error: {error}")
+                return None
+        else:
+            # Assume it's already a video ID
+            video_id = url_or_id
 
         print(f"Downloading transcript for video ID: {video_id}")
         

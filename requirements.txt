@@ -1,4 +1,19 @@
-chromadb
+# Core dependencies
 streamlit
 boto3
 youtube_transcript_api
+
+# LangChain and related packages
+langchain-core>=0.3.34
+langchain>=0.1.0
+langchain-community>=0.0.10
+chromadb>=0.4.22
+
+# Text processing
+python-dotenv
+tiktoken
+
+# Vector operations
+numpy
+pandas
+sentence-transformers  # for embeddings
