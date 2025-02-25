@@ -3,6 +3,7 @@ from typing import Dict
 import json
 from collections import Counter
 import re
+import os
 
 from backend.get_transcript import YouTubeTranscriptDownloader
 from backend.utils import validate_youtube_url
@@ -431,9 +432,39 @@ def render_interactive_stage():
         if st.session_state.questions and len(st.session_state.questions) > st.session_state.current_question:
             current_q = st.session_state.questions[st.session_state.current_question]
             
-            # Display question
+            # Display question with audio
             st.markdown(f"### Question {st.session_state.current_question + 1}")
             st.markdown(current_q['question'])
+            
+            # Initialize audio generator if not in session state
+            if 'audio_generator' not in st.session_state:
+                from backend.audio_generator import AudioGenerator
+                st.session_state.audio_generator = AudioGenerator()
+                
+            # Initialize voice alternation if not in session state
+            if 'question_voice_is_male' not in st.session_state:
+                st.session_state.question_voice_is_male = False  # Start with female for questions
+            
+            # Generate and play audio
+            audio_col1, audio_col2 = st.columns([1, 3])
+            with audio_col1:
+                if st.button('🔊 Generate Audio', key=f'gen_audio_{st.session_state.current_question}'):
+                    with st.spinner('Generating audio...'):
+                        audio_path, error = st.session_state.audio_generator.generate_audio(
+                            current_q,
+                            question_voice_is_male=st.session_state.question_voice_is_male
+                        )
+                        if audio_path:
+                            st.session_state.current_audio = audio_path
+                            # Toggle voice for next question
+                            st.session_state.question_voice_is_male = not st.session_state.question_voice_is_male
+                            st.rerun()
+                        else:
+                            st.error(f'Failed to generate audio: {error}')
+            
+            with audio_col2:
+                if 'current_audio' in st.session_state and os.path.exists(st.session_state.current_audio):
+                    st.audio(st.session_state.current_audio)
             
             # Display choices
             choice = st.radio(
@@ -481,6 +512,15 @@ def render_interactive_stage():
                             st.session_state.current_question += 1
                             st.session_state.submitted = False
                             st.session_state.feedback = None
+                            # Clear audio for next question
+                            if 'current_audio' in st.session_state:
+                                try:
+                                    # Delete the audio file if it exists
+                                    if os.path.exists(st.session_state.current_audio):
+                                        os.remove(st.session_state.current_audio)
+                                except Exception as e:
+                                    print(f"Error removing audio file: {e}")
+                                del st.session_state.current_audio
                             st.rerun()
                         else:
                             st.success("🎉 You've completed all questions!")
