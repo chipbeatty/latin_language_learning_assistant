@@ -45,11 +45,9 @@ class LatinLearningChain:
             model_id="anthropic.claude-v2",
             region_name="us-east-1",
             model_kwargs={
-                "max_tokens_to_sample": 500,
                 "temperature": 0.5,
-                "top_k": 250,
-                "top_p": 1,
-                "stop_sequences": ["\n\nHuman:"]
+                "max_tokens": 500,
+                "messages": []
             }
         )
         
@@ -67,6 +65,8 @@ class LatinLearningChain:
         self.loader = LatinTranscriptLoader()
         
         # Initialize ChromaDB
+        self.db_dir = "chroma_db"
+        os.makedirs(self.db_dir, exist_ok=True)
         self.vectorstore = None
         
         # Create conversation memory
@@ -76,7 +76,7 @@ class LatinLearningChain:
         )
         
         # Create custom prompt template
-        self.qa_template = """You are a helpful Latin language tutor. Use the following context to answer the student's question.
+        self.qa_template = """You are a helpful French language tutor. Use the following context to answer the student's question.
         If you don't know the answer, just say you don't know. Don't try to make up an answer.
 
         Context: {context}
@@ -106,7 +106,8 @@ class LatinLearningChain:
         self.vectorstore = Chroma.from_documents(
             documents=splits,
             embedding=self.embeddings,
-            collection_name="latin_transcripts"
+            collection_name="french_transcripts",
+            persist_directory=self.db_dir
         )
         
         return True

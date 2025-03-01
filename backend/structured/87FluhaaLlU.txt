@@ -1,0 +1,32 @@
+[
+    {
+        "question": "Quel est le mot latin pour 'fermier' ?",
+        "choices": ["A) agricola", "B) libra", "C) epistola", "D) magister"],
+        "correct_answer": "A",
+        "topic": "Vocabulaire"
+    },
+    {
+        "question": "Que signifie la phrase latine 'epistula scribit' en anglais ?",
+        "choices": ["A) The poet writes a letter", "B) The farmer works", "C) The teacher teaches the large student", "D) The male student walked in the forest"],
+        "correct_answer": "A",
+        "topic": "Traduction"
+    },
+    {
+        "question": "Quel cas grammatical est indiqué par le 'm' dans le mot latin 'libra' ?",
+        "choices": ["A) Nominatif", "B) Génitif", "C) Accusatif", "D) Ablatif"],
+        "correct_answer": "C",
+        "topic": "Grammaire"
+    },
+    {
+        "question": "Que signifie la phrase latine 'puella puerto gladium dot' en anglais ?",
+        "choices": ["A) The girl gives the boy a sword", "B) The teacher teaches the large student", "C) The farmer works", "D) The male student walked in the forest"],
+        "correct_answer": "A",
+        "topic": "Traduction"
+    },
+    {
+        "question": "Que signifie le mot latin 'noli' ?",
+        "choices": ["A) Oui", "B) Non", "C) Tu", "D) Il"],
+        "correct_answer": "B",
+        "topic": "Vocabulaire"
+    }
+]

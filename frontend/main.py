@@ -4,7 +4,7 @@ import json
 from collections import Counter
 import re
 import os
-
+from pathlib import Path
 from backend.get_transcript import YouTubeTranscriptDownloader
 from backend.utils import validate_youtube_url
 
@@ -379,7 +379,8 @@ def render_interactive_stage():
     practice_type = st.selectbox(
         "Select Practice Type",
         ["-- Select practice type --", "Vocabulary Quiz", "Dialogue Practice", "Listening Exercise"],
-        index=0
+        index=0,
+        key="practice_type"
     )
     
     # Validate practice type selection
@@ -387,115 +388,115 @@ def render_interactive_stage():
         st.info("Please select a practice type to begin.")
         return
     
-    if practice_type == "Vocabulary Quiz":
-        # Initialize quiz generator if not in session state
-        if 'quiz_generator' not in st.session_state:
-            from backend.interactive import QuizGenerator
-            st.session_state.quiz_generator = QuizGenerator()
+    # Initialize quiz generator if not in session state
+    if 'quiz_generator' not in st.session_state:
+        from backend.interactive import QuizGenerator
+        st.session_state.quiz_generator = QuizGenerator()
+        
+    # Get available files
+    structured_files = st.session_state.quiz_generator.get_available_files()
+    
+    if not structured_files:
+        st.error("No structured data found. Please process some transcripts first.")
+        return
+        
+    # Select file to use
+    selected_file = st.selectbox(
+        "Select Video Questions",
+        ["-- Select a video --"] + structured_files,
+        format_func=lambda x: x if x == "-- Select a video --" else f"Video ID: {x.replace('.txt', '')}",
+        key="video_selection"
+    )
+    
+    # Validate selection
+    if selected_file == "-- Select a video --":
+        st.info("Please select a video to load questions from.")
+        return
+    
+    # Only show Start Quiz button if quiz hasn't started
+    if not st.session_state.quiz_started:
+        if selected_file and st.button("Start Quiz"):
+            try:
+                questions = st.session_state.quiz_generator.load_questions(selected_file)
+                if questions:
+                    reset_quiz_state()
+                    st.session_state.questions = questions
+                    st.session_state.quiz_started = True
+                    st.success("Quiz started! Good luck!")
+                    st.rerun()
+                else:
+                    st.error("No questions found in the selected video.")
+            except Exception as e:
+                st.error(f"Error loading questions: {str(e)}")
+    
+    # Display current question if available
+    if st.session_state.questions and len(st.session_state.questions) > st.session_state.current_question:
+        current_q = st.session_state.questions[st.session_state.current_question]
+        
+        # Display question with audio
+        st.markdown(f"### Question {st.session_state.current_question + 1}")
+        st.markdown(current_q['question'])
+        
+        # Initialize audio generator if not in session state
+        if 'audio_generator' not in st.session_state:
+            from backend.audio_generator import AudioGenerator
+            st.session_state.audio_generator = AudioGenerator()
             
-        # Get available files
-        structured_files = st.session_state.quiz_generator.get_available_files()
+        # Initialize voice alternation if not in session state
+        if 'question_voice_is_male' not in st.session_state:
+            st.session_state.question_voice_is_male = False  # Start with female for questions
         
-        if not structured_files:
-            st.error("No structured data found. Please process some transcripts first.")
-            return
-        
-        # Select file to use
-        selected_file = st.selectbox(
-            "Select Video Questions",
-            ["-- Select a video --"] + structured_files,
-            format_func=lambda x: x if x == "-- Select a video --" else f"Video ID: {x.replace('.txt', '')}"
-        )
-        
-        # Validate selection
-        if selected_file == "-- Select a video --":
-            st.info("Please select a video to load questions from.")
-            return
-        
-        # Only show Start Quiz button if quiz hasn't started
-        if not st.session_state.quiz_started:
-            if selected_file and st.button("Start Quiz"):
-                try:
-                    questions = st.session_state.quiz_generator.load_questions(selected_file)
-                    if questions:
-                        reset_quiz_state()
-                        st.session_state.questions = questions
-                        st.session_state.quiz_started = True
-                        st.success("Quiz started! Good luck!")
+        # Generate and play audio
+        audio_col1, audio_col2 = st.columns([1, 3])
+        with audio_col1:
+            if st.button('🔊 Generate Audio', key=f'gen_audio_{st.session_state.current_question}'):
+                with st.spinner('Generating audio...'):
+                    audio_path, error = st.session_state.audio_generator.generate_audio(
+                        current_q,
+                        question_voice_is_male=st.session_state.question_voice_is_male
+                    )
+                    if audio_path:
+                        st.session_state.current_audio = audio_path
+                        # Toggle voice for next question
+                        st.session_state.question_voice_is_male = not st.session_state.question_voice_is_male
                         st.rerun()
                     else:
-                        st.error("No questions found in the selected video.")
-                except Exception as e:
-                    st.error(f"Error loading questions: {str(e)}")
+                        st.error(f'Failed to generate audio: {error}')
         
-        # Display current question if available
-        if st.session_state.questions and len(st.session_state.questions) > st.session_state.current_question:
-            current_q = st.session_state.questions[st.session_state.current_question]
-            
-            # Display question with audio
-            st.markdown(f"### Question {st.session_state.current_question + 1}")
-            st.markdown(current_q['question'])
-            
-            # Initialize audio generator if not in session state
-            if 'audio_generator' not in st.session_state:
-                from backend.audio_generator import AudioGenerator
-                st.session_state.audio_generator = AudioGenerator()
-                
-            # Initialize voice alternation if not in session state
-            if 'question_voice_is_male' not in st.session_state:
-                st.session_state.question_voice_is_male = False  # Start with female for questions
-            
-            # Generate and play audio
-            audio_col1, audio_col2 = st.columns([1, 3])
-            with audio_col1:
-                if st.button('🔊 Generate Audio', key=f'gen_audio_{st.session_state.current_question}'):
-                    with st.spinner('Generating audio...'):
-                        audio_path, error = st.session_state.audio_generator.generate_audio(
-                            current_q,
-                            question_voice_is_male=st.session_state.question_voice_is_male
-                        )
-                        if audio_path:
-                            st.session_state.current_audio = audio_path
-                            # Toggle voice for next question
-                            st.session_state.question_voice_is_male = not st.session_state.question_voice_is_male
-                            st.rerun()
-                        else:
-                            st.error(f'Failed to generate audio: {error}')
-            
-            with audio_col2:
-                if 'current_audio' in st.session_state and os.path.exists(st.session_state.current_audio):
-                    st.audio(st.session_state.current_audio)
-            
-            # Display choices
-            choice = st.radio(
-                "Choose your answer:",
-                current_q['choices'],
-                key=f"q_{st.session_state.current_question}"
-            )
-            
-            # Initialize session state for current question
-            if 'submitted' not in st.session_state:
-                st.session_state.submitted = False
+        with audio_col2:
+            if 'current_audio' in st.session_state and os.path.exists(st.session_state.current_audio):
+                st.audio(st.session_state.current_audio)
+        
+        # Display choices
+        choice = st.radio(
+            "Choose your answer:",
+            current_q['choices'],
+            key=f"q_{st.session_state.current_question}_{practice_type}"
+        )
+        
+        # Initialize session state for current question
+        if 'submitted' not in st.session_state:
+            st.session_state.submitted = False
 
-            # Question interface
-            cols = st.columns([3, 1])
-            with cols[0]:
-                # Initialize feedback state if not exists
-                if 'feedback' not in st.session_state:
-                    st.session_state.feedback = None
-                    
-                # Show feedback from previous submission
-                if st.session_state.feedback:
-                    if st.session_state.feedback['correct']:
-                        st.success('✅ Correct! Great job!')
-                    else:
-                        st.error('❌ Incorrect.')
-                        st.info(f'The correct answer was: {st.session_state.feedback["correct_answer"]}')
+        # Question interface
+        cols = st.columns([3, 1])
+        with cols[0]:
+            # Initialize feedback state if not exists
+            if 'feedback' not in st.session_state:
+                st.session_state.feedback = None
                 
-                # Show appropriate button based on state
-                if not st.session_state.submitted:
-                    submit = st.button('Submit Answer')
-                    if submit:
+            # Show feedback from previous submission
+            if st.session_state.feedback:
+                if st.session_state.feedback['correct']:
+                    st.success('✅ Correct! Great job!')
+                else:
+                    st.error('❌ Incorrect.')
+                    st.info(f'The correct answer was: {st.session_state.feedback["correct_answer"]}')
+            
+            # Show appropriate button based on state
+            if not st.session_state.submitted:
+                submit = st.button('Submit Answer')
+                if submit:
                         is_correct = st.session_state.quiz_generator.validate_answer(current_q, choice)
                         if is_correct:
                             st.session_state.score += 1
@@ -544,8 +545,271 @@ def render_interactive_stage():
             progress = current_q_num / total_questions
             st.progress(progress)
     
-    # Future sections for additional features can be added here
-    pass
+    elif practice_type == "Dialogue Practice":
+        # Only show Start Quiz button if quiz hasn't started
+        if not st.session_state.quiz_started:
+            if selected_file and st.button("Start Dialogue Practice"):
+                try:
+                    # Load all questions and filter for dialogue type
+                    all_questions = st.session_state.quiz_generator.load_questions(selected_file)
+                    dialogue_questions = [q for q in all_questions if q.get('topic') == 'Conversation']
+                    
+                    if dialogue_questions:
+                        reset_quiz_state()
+                        st.session_state.questions = dialogue_questions
+                        st.session_state.quiz_started = True
+                        st.success("Dialogue practice started! Good luck!")
+                        st.rerun()
+                    else:
+                        st.error("No dialogue questions found in the selected video.")
+                except Exception as e:
+                    st.error(f"Error loading questions: {str(e)}")
+                    
+        # Display current question if available
+        if st.session_state.questions and len(st.session_state.questions) > st.session_state.current_question:
+            current_q = st.session_state.questions[st.session_state.current_question]
+            
+            # Initialize audio generator if not in session state
+            if 'audio_generator' not in st.session_state:
+                from backend.audio_generator import AudioGenerator
+                st.session_state.audio_generator = AudioGenerator()
+            
+            # Display context if available
+            if 'context' in current_q:
+                st.markdown("### Context")
+                st.markdown(current_q['context'])
+            
+            # Display question with audio
+            st.markdown(f"### Question {st.session_state.current_question + 1}")
+            st.markdown(current_q['question'])
+            
+            # Generate and play audio
+            audio_col1, audio_col2 = st.columns([1, 3])
+            with audio_col1:
+                if st.button('🔊 Play Dialogue', key=f'play_dialogue_{st.session_state.current_question}'):
+                    with st.spinner('Generating audio...'):
+                        audio_path = st.session_state.audio_generator.generate_audio(
+                            current_q,
+                            question_voice_is_male=True
+                        )
+                        if audio_path:
+                            st.session_state.current_audio = audio_path
+                            st.rerun()
+                        else:
+                            st.error('Failed to generate audio')
+            
+            with audio_col2:
+                if 'current_audio' in st.session_state:
+                    with open(st.session_state.current_audio, 'rb') as audio_file:
+                        audio_bytes = audio_file.read()
+                        st.audio(audio_bytes, format='audio/mp3')
+            
+            # Display choices and handle answers same as vocabulary quiz
+            choice = st.radio(
+                "Choose your answer:",
+                current_q['choices'],
+                key=f"q_{st.session_state.current_question}"
+            )
+            
+            # Initialize session state for current question
+            if 'submitted' not in st.session_state:
+                st.session_state.submitted = False
+
+            # Question interface
+            cols = st.columns([3, 1])
+            with cols[0]:
+                # Initialize feedback state if not exists
+                if 'feedback' not in st.session_state:
+                    st.session_state.feedback = None
+                    
+                # Show feedback from previous submission
+                if st.session_state.feedback:
+                    if st.session_state.feedback['correct']:
+                        st.success('✅ Correct! Great job!')
+                    else:
+                        st.error('❌ Incorrect.')
+                        st.info(f'The correct answer was: {st.session_state.feedback["correct_answer"]}')
+                
+                # Show appropriate button based on state
+                if not st.session_state.submitted:
+                    submit = st.button('Submit Answer')
+                    if submit:
+                        is_correct = st.session_state.quiz_generator.validate_answer(current_q, choice)
+                        if is_correct:
+                            st.session_state.score += 1
+                        st.session_state.feedback = {
+                            'correct': is_correct,
+                            'correct_answer': current_q['correct_answer']
+                        }
+                        st.session_state.submitted = True
+                        st.rerun()
+                else:
+                    next_q = st.button('Next Question')
+                    if next_q:
+                        if st.session_state.current_question < len(st.session_state.questions) - 1:
+                            st.session_state.current_question += 1
+                            st.session_state.submitted = False
+                            st.session_state.feedback = None
+                            # Clear audio for next question
+                            if 'current_audio' in st.session_state:
+                                try:
+                                    if os.path.exists(st.session_state.current_audio):
+                                        os.remove(st.session_state.current_audio)
+                                except Exception as e:
+                                    print(f"Error removing audio file: {e}")
+                                del st.session_state.current_audio
+                            st.rerun()
+                        else:
+                            st.success("🎉 You've completed all questions!")
+
+            # Show score and progress
+            with cols[1]:
+                total_questions = len(st.session_state.questions)
+                current_q_num = st.session_state.current_question + 1
+                
+                if current_q_num == total_questions and st.session_state.submitted:
+                    st.success(f'Practice completed!\nFinal score: {st.session_state.score}/{total_questions}')
+                    if st.button('Start Over'):
+                        reset_quiz_state()
+                        st.session_state.quiz_started = False
+                        st.rerun()
+                else:
+                    st.info(f'Question {current_q_num} of {total_questions}')
+                    st.markdown(f"Score: {st.session_state.score}/{current_q_num if st.session_state.submitted else current_q_num - 1}")
+            
+            # Display progress
+            progress = current_q_num / total_questions
+            st.progress(progress)
+            
+    elif practice_type == "Listening Exercise":
+        # Only show Start Quiz button if quiz hasn't started
+        if not st.session_state.quiz_started:
+            if selected_file and st.button("Start Listening Exercise"):
+                try:
+                    # Load all questions
+                    all_questions = st.session_state.quiz_generator.load_questions(selected_file)
+                    if all_questions:
+                        reset_quiz_state()
+                        st.session_state.questions = all_questions
+                        st.session_state.quiz_started = True
+                        st.success("Listening exercise started! Good luck!")
+                        st.rerun()
+                    else:
+                        st.error("No questions found in the selected video.")
+                except Exception as e:
+                    st.error(f"Error loading questions: {str(e)}")
+                    
+        # Display current question if available
+        if st.session_state.questions and len(st.session_state.questions) > st.session_state.current_question:
+            current_q = st.session_state.questions[st.session_state.current_question]
+            
+            # Initialize audio generator if not in session state
+            if 'audio_generator' not in st.session_state:
+                from backend.audio_generator import AudioGenerator
+                st.session_state.audio_generator = AudioGenerator()
+            
+            # Generate and play audio first
+            audio_col1, audio_col2 = st.columns([1, 3])
+            with audio_col1:
+                if st.button('🔊 Play Audio', key=f'play_audio_{st.session_state.current_question}'):
+                    with st.spinner('Generating audio...'):
+                        audio_path = st.session_state.audio_generator.generate_audio(
+                            current_q,
+                            question_voice_is_male=True
+                        )
+                        if audio_path:
+                            st.session_state.current_audio = audio_path
+                            st.rerun()
+                        else:
+                            st.error('Failed to generate audio')
+            
+            with audio_col2:
+                if 'current_audio' in st.session_state:
+                    with open(st.session_state.current_audio, 'rb') as audio_file:
+                        audio_bytes = audio_file.read()
+                        st.audio(audio_bytes, format='audio/mp3')
+            
+            # Show question text after audio has been played
+            if 'current_audio' in st.session_state:
+                st.markdown(f"### Question {st.session_state.current_question + 1}")
+                st.markdown(current_q['question'])
+                
+                # Display choices and handle answers
+                choice = st.radio(
+                    "Choose your answer:",
+                    current_q['choices'],
+                    key=f"q_{st.session_state.current_question}"
+                )
+                
+                # Initialize session state for current question
+                if 'submitted' not in st.session_state:
+                    st.session_state.submitted = False
+
+                # Question interface
+                cols = st.columns([3, 1])
+                with cols[0]:
+                    # Initialize feedback state if not exists
+                    if 'feedback' not in st.session_state:
+                        st.session_state.feedback = None
+                        
+                    # Show feedback from previous submission
+                    if st.session_state.feedback:
+                        if st.session_state.feedback['correct']:
+                            st.success('✅ Correct! Great job!')
+                        else:
+                            st.error('❌ Incorrect.')
+                            st.info(f'The correct answer was: {st.session_state.feedback["correct_answer"]}')
+                    
+                    # Show appropriate button based on state
+                    if not st.session_state.submitted:
+                        submit = st.button('Submit Answer')
+                        if submit:
+                            is_correct = st.session_state.quiz_generator.validate_answer(current_q, choice)
+                            if is_correct:
+                                st.session_state.score += 1
+                            st.session_state.feedback = {
+                                'correct': is_correct,
+                                'correct_answer': current_q['correct_answer']
+                            }
+                            st.session_state.submitted = True
+                            st.rerun()
+                    else:
+                        next_q = st.button('Next Question')
+                        if next_q:
+                            if st.session_state.current_question < len(st.session_state.questions) - 1:
+                                st.session_state.current_question += 1
+                                st.session_state.submitted = False
+                                st.session_state.feedback = None
+                                # Clear audio for next question
+                                if 'current_audio' in st.session_state:
+                                    try:
+                                        if os.path.exists(st.session_state.current_audio):
+                                            os.remove(st.session_state.current_audio)
+                                    except Exception as e:
+                                        print(f"Error removing audio file: {e}")
+                                    del st.session_state.current_audio
+                                st.rerun()
+                            else:
+                                st.success("🎉 You've completed all questions!")
+
+                # Show score and progress
+                with cols[1]:
+                    total_questions = len(st.session_state.questions)
+                    current_q_num = st.session_state.current_question + 1
+                    
+                    if current_q_num == total_questions and st.session_state.submitted:
+                        st.success(f'Exercise completed!\nFinal score: {st.session_state.score}/{total_questions}')
+                        if st.button('Start Over'):
+                            reset_quiz_state()
+                            st.session_state.quiz_started = False
+                            st.rerun()
+                    else:
+                        st.info(f'Question {current_q_num} of {total_questions}')
+                        st.markdown(f"Score: {st.session_state.score}/{current_q_num if st.session_state.submitted else current_q_num - 1}")
+                
+                # Display progress
+                progress = current_q_num / total_questions
+                st.progress(progress)
 
 def main():
     render_header()

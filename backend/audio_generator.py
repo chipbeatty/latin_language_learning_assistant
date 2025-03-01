@@ -44,108 +44,83 @@ class AudioGenerator:
         segments = [
             # Introduction (always male voice)
             AudioSegment(
-                text="<prosody rate='slow'>Écoutez la question et choisissez la meilleure réponse.</prosody><break time='1s'/>",
+                text="<speak>Écoutez la question et choisissez la meilleure réponse.<break time='1s'/></speak>",
                 voice_id=self.male_voice,
                 role='intro'
             ),
             # Question
             AudioSegment(
-                text=f"<prosody rate='slow'>{question_data['question']}</prosody><break time='1s'/>",
+                text=f"<speak>{question_data['question']}<break time='1s'/></speak>",
                 voice_id=question_voice,
                 role='question'
             )
         ]
         
-        # Add answer choices
-        for i, choice in enumerate(choices):
-            letter = chr(65 + i)  # 65 is ASCII for 'A'
-            segments.append(AudioSegment(
-                text=f"Option {letter}<break time='0.7s'/>{choice}<break time='1s'/>",
+        # Add context if available
+        if 'context' in question_data:
+            segments.insert(1, AudioSegment(
+                text=f"<speak>{question_data['context']}<break time='1s'/></speak>",
                 voice_id=answer_voice,
-                role=f'answer_{letter}'
+                role='context'
             ))
+        
+        # Add choices if available
+        if choices:
+            for i, choice in enumerate(choices):
+                segments.append(AudioSegment(
+                    text=f"<speak>{choice}<break time='0.5s'/></speak>",
+                    voice_id=answer_voice,
+                    role=f'choice_{i+1}'
+                ))
         
         return segments
 
-
-    def _generate_audio_segment(self, segment: AudioSegment) -> Optional[str]:
-        """Generate audio for a single segment using Amazon Polly"""
+    def generate_audio(self, question_data: Dict, question_voice_is_male: bool = True) -> str:
+        """Generate audio for a question and return the path to the audio file"""
+        # Create a unique filename based on the question content
+        filename = f"question_{hash(json.dumps(question_data))}.mp3"
+        output_path = self.output_dir / filename
+        
+        # If file already exists, return its path
+        if output_path.exists():
+            return str(output_path)
+        
+        # Generate the conversation script
+        segments = self._generate_conversation_script(question_data, question_voice_is_male)
+        
+        # Generate audio for each segment
+        temp_files = []
         try:
-            print(f"Generating audio for text: '{segment.text}' using voice: {segment.voice_id}")
-            response = self.polly_client.synthesize_speech(
-                Engine='neural',
-                LanguageCode='fr-FR',
-                OutputFormat='mp3',
-                TextType='ssml',
-                Text=f'<speak>{segment.text}</speak>',
-                VoiceId=segment.voice_id
-            )
-            
-            # Save to temporary file
-            with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as temp_file:
-                if "AudioStream" in response:
-                    temp_file.write(response["AudioStream"].read())
-                    print(f"Successfully saved audio to {temp_file.name}")
-                    return temp_file.name
-                else:
-                    print("No AudioStream in response")
-            return None
-        except Exception as e:
-            import traceback
-            print(f"Error generating audio segment: {e}")
-            print(f"Full traceback: {traceback.format_exc()}")
-            return None
-
-    def generate_audio(self, question_data: Dict, question_voice_is_male: bool = False) -> tuple[Optional[str], Optional[str]]:
-        """Generate full audio file for a question
-        Returns:
-            Tuple of (audio_path, error_message)
-        """
-        try:
-            print(f"Received question data: {question_data}")
-            # Generate conversation script with voice alternation
-            segments = self._generate_conversation_script(question_data, question_voice_is_male)
-            if not segments:
-                return None, "No segments were generated from the conversation script"
-            
-            print("Starting audio generation for segments...")
-            # Generate audio for each segment
-            audio_files = []
             for i, segment in enumerate(segments):
-                print(f"Processing segment {i+1}/{len(segments)}")
-                audio_file = self._generate_audio_segment(segment)
-                if audio_file:
-                    audio_files.append(audio_file)
-                else:
-                    print(f"Failed to generate audio for segment {i+1}")
+                # Generate audio with Polly
+                response = self.polly_client.synthesize_speech(
+                    Engine='neural',
+                    LanguageCode='fr-FR',
+                    OutputFormat='mp3',
+                    Text=segment.text,
+                    TextType='ssml',
+                    VoiceId=segment.voice_id
+                )
+                
+                # Save to temporary file
+                with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as temp_file:
+                    temp_files.append(temp_file.name)
+                    if 'AudioStream' in response:
+                        temp_file.write(response['AudioStream'].read())
             
-            if not audio_files:
-                print("No audio files were generated from any segment")
-                return None, "No audio files were generated"
+            # Concatenate all audio files
+            concat_command = ['ffmpeg', '-y']
+            for temp_file in temp_files:
+                concat_command.extend(['-i', temp_file])
+            concat_command.extend(['-filter_complex', f'concat=n={len(temp_files)}:v=0:a=1', str(output_path)])
             
-            # Create output filename based on question
-            output_filename = f"question_{hash(question_data['question'])}.mp3"
-            output_path = self.output_dir / output_filename
+            subprocess.run(concat_command, check=True)
+            return str(output_path)
             
-            # Combine audio files using ffmpeg
-            concat_file = "concat.txt"
-            with open(concat_file, 'w') as f:
-                for audio_file in audio_files:
-                    f.write(f"file '{audio_file}'\n")
-            
-            subprocess.run([
-                'ffmpeg', '-f', 'concat', '-safe', '0',
-                '-i', concat_file, '-c', 'copy', str(output_path)
-            ], check=True)
-            
-            # Cleanup temporary files
-            os.remove(concat_file)
-            for file in audio_files:
-                os.remove(file)
-            
-            return str(output_path), None
-        except Exception as e:
-            import traceback
-            print(f"Error generating audio: {e}")
-            print(f"Full traceback: {traceback.format_exc()}")
-            return None, f"Error generating audio: {str(e)}"
+        finally:
+            # Clean up temporary files
+            for temp_file in temp_files:
+                try:
+                    os.remove(temp_file)
+                except OSError:
+                    pass

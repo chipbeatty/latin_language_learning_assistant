@@ -1,4 +1,5 @@
 import re
+import json
 from typing import List, Dict, Optional
 from pathlib import Path
 
@@ -20,46 +21,10 @@ class QuizGenerator:
             raise FileNotFoundError(f"File not found: {file_path}")
 
         with open(file_path, 'r', encoding='utf-8') as f:
-            questions_data = f.read()
-
-        questions = []
-        question_blocks = re.findall(r'<question>(.*?)</question>', questions_data, re.DOTALL)
-
-        for block in question_blocks:
-            # Extract parts
-            intro = re.search(r'Introduction:\s*(.+?)(?=\n\s*Conversation:|$)', block, re.DOTALL)
-            conv = re.search(r'Conversation:\s*(.+?)(?=\n\s*Question:|$)', block, re.DOTALL)
-            q = re.search(r'Question:\s*(.+?)$', block, re.DOTALL)
-
-            if q:  # Only need the question part for now
-                question_text = q.group(1).strip()
-                # Extract the correct answer from the question
-                correct_answer = question_text.split('?')[0] + "."
-                
-                # Generate plausible wrong answers
-                wrong_answers = [
-                    "Une réponse incorrecte mais plausible.",
-                    "Une autre option qui semble possible.",
-                    "Une troisième suggestion intéressante."
-                ]
-                
-                # Randomly assign letters to answers
-                import random
-                answers = [correct_answer] + wrong_answers
-                random.shuffle(answers)
-                
-                # Create choices with letters
-                choices = [f"{chr(65+i)}) {answer}" for i, answer in enumerate(answers)]
-                
-                # Find which letter corresponds to the correct answer
-                correct_letter = chr(65 + answers.index(correct_answer))
-                
-                questions.append({
-                    'question': question_text,
-                    'choices': choices,
-                    'correct_answer': correct_letter,
-                    'topic': 'Conversation'
-                })
+            try:
+                questions = json.loads(f.read())
+            except json.JSONDecodeError:
+                raise ValueError(f"Invalid JSON format in file: {file_path}")
 
         return questions
 
