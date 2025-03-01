@@ -9,7 +9,6 @@
 backend/transcripts/
 chroma_db/
 frontend/static/
-screenshots/
 
 
 # Byte-compiled / optimized / DLL files
