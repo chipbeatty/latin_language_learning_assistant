@@ -1,40 +1,63 @@
-# language-learning-assistant
-This is for the generative AI bootcamp
+# French Learning Assistant
 
-**Difficulty:** Level 200 *(Due to RAG implementation and multiple AWS services integration)*
+## Objective
+- Create an interactive French learning application that focuses on listening comprehension
+- Generate natural-sounding conversations from YouTube transcripts
+- Provide audio-based quizzes with alternating male/female voices
 
-**Business Goal:**
-A progressive learning tool that demonstrates how RAG and agents can enhance language learning by grounding responses in real Japanese lesson content. The system shows the evolution from basic LLM responses to a fully contextual learning assistant, helping students understand both the technical implementation and practical benefits of RAG.
+## Tools Used
+- **Frontend**: Streamlit
+- **Audio Generation**: Amazon Polly (Neural TTS)
+- **AI Services**: 
+  - Amazon Bedrock (Claude) for conversation generation
+  - LangChain for RAG implementation
+- **Data Processing**: ffmpeg for audio manipulation
 
-**Technical Uncertainty:**
-1. How effectively can we process and structure bilingual (Japanese/English) content for RAG?
-2. What's the optimal way to chunk and embed Japanese language content?
-3. How can we effectively demonstrate the progression from base LLM to RAG to students?
-4. Can we maintain context accuracy when retrieving Japanese language examples?
-5. How do we balance between giving direct answers and providing learning guidance?
-6. What's the most effective way to structure multiple-choice questions from retrieved content?
+## Key Features
+- YouTube transcript extraction and processing
+- Dynamic quiz generation from processed content
+- Multi-voice audio generation with natural pacing
+- RAG-based contextual responses
 
-**Technical Restrictions:**
-* Must use Amazon Bedrock for:
-   * API (converse, guardrails, embeddings, agents) (https://boto3.amazonaws.com/v1/documentation/api/latest/index.html)
-     * Aamzon Nova Micro for text generation (https://aws.amazon.com/ai/generative-ai/nova)
-   * Titan for embeddings
-* Must implement in Streamlit, pandas (data visualization)
-* Must use SQLite for vector storage
-* Must handle YouTube transcripts as knowledge source (YouTubeTranscriptApi: https://pypi.org/project/youtube-transcript-api/)
-* Must demonstrate clear progression through stages:
-   * Base LLM
-   * Raw transcript
-   * Structured data
-   * RAG implementation
-   * Interactive features
-* Must maintain clear separation between components for teaching purposes
-* Must include proper error handling for Japanese text processing
-* Must provide clear visualization of RAG process
-* Should work within free tier limits where possible
+## Current Concerns
+- Audio generation speed needs optimization
+- Memory management for audio file cleanup
+- AWS credentials handling in development vs production
+- Port conflicts when running multiple Streamlit instances
 
-This structure:
-1. Sets clear expectations
-2. Highlights key technical challenges
-3. Defines specific constraints
-4. Keeps focus on both learning outcomes and technical implementation
+## Problems Encountered & Solutions
+1. **Audio Generation Issues**
+   - Problem: Inconsistent voice timing and unclear answer choices
+   - Solution: Implemented SSML tags for better pacing and clear option markers
+
+2. **Voice Alternation**
+   - Problem: Single voice made long sessions monotonous
+   - Solution: Added alternating male/female voices with consistent patterns
+
+3. **Resource Management**
+   - Problem: Accumulated temporary audio files
+   - Solution: Implemented automatic cleanup on question navigation
+
+## Setup Requirements
+- Python 3.8+
+- AWS credentials with Polly and Bedrock access
+- ffmpeg installed locally
+- Environment variables configured in `.env`
+
+## Key Differences from Original Project
+
+### Architecture & Framework Enhancements
+- **LangChain Integration**: Added LangChain for sophisticated RAG implementation, enabling better context management
+- **Single Application**: Unified frontend and backend into a single Streamlit application (original had separate backend)
+- **Advanced Audio Processing**: Implemented SSML and voice alternation for better audio quality
+
+### Feature Additions
+- **Voice Alternation**: Added male/female voice switching for more engaging audio
+- **RAG Implementation**: Added contextual learning with RAG-based responses
+- **Memory Management**: Added automatic cleanup of audio files
+- **Enhanced Error Handling**: Added comprehensive error tracking and user feedback
+
+### Technical Improvements
+- **AWS Integration**: Deeper integration with AWS services (Polly, Bedrock)
+- **State Management**: Better session state handling in Streamlit
+- **Code Organization**: More modular code structure with separate audio generation class
